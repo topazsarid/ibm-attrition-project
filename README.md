@@ -66,222 +66,6 @@ base_rate
 
 # Figure 1 — “Attrition Rate Across Work-Life Strain Markers”
 
-``` r
-overall_attrition <- mean(ibm$Attr)
-
-fig1_data <- bind_rows(
-  ibm %>%
-    group_by(Level = OverTime) %>%
-    summarise(
-      attrition_rate = mean(Attr),
-      n = n(),
-      .groups = "drop"
-    ) %>%
-    mutate(
-      Factor = "Overtime",
-      Level = recode(
-        as.character(Level),
-        "No" = "No overtime",
-        "Yes" = "Overtime"
-      )
-    ),
-
-  ibm %>%
-    group_by(Level = BusinessTravel) %>%
-    summarise(
-      attrition_rate = mean(Attr),
-      n = n(),
-      .groups = "drop"
-    ) %>%
-    mutate(
-      Factor = "Business travel",
-      Level = recode(
-        as.character(Level),
-        "Non-Travel" = "Non-travel",
-        "Travel_Rarely" = "Travel rarely",
-        "Travel_Frequently" = "Travel frequently"
-      )
-    ),
-
-  ibm %>%
-    group_by(Level = MaritalStatus) %>%
-    summarise(
-      attrition_rate = mean(Attr),
-      n = n(),
-      .groups = "drop"
-    ) %>%
-    mutate(
-      Factor = "Marital status",
-      Level = as.character(Level)
-    )
-) %>%
-  mutate(
-    Factor = factor(
-      Factor,
-      levels = c("Overtime", "Business travel", "Marital status")
-    ),
-    Level = factor(
-      Level,
-      levels = c(
-        "No overtime", "Overtime",
-        "Non-travel", "Travel rarely", "Travel frequently",
-        "Divorced", "Married", "Single"
-      )
-    ),
-    label = paste0(
-      scales::percent(attrition_rate, accuracy = 0.1),
-      "\n",
-      "n=", n
-    )
-  ) %>%
-  group_by(Factor) %>%
-  mutate(
-    fill_color = case_when(
-      Factor == "Overtime" ~ scales::col_numeric(
-        palette = c("#D7EAF7", "#2A6F97"),
-        domain = range(attrition_rate)
-      )(attrition_rate),
-
-      Factor == "Business travel" ~ scales::col_numeric(
-        palette = c("#E4D9F2", "#7B5EA7"),
-        domain = range(attrition_rate)
-      )(attrition_rate),
-
-      Factor == "Marital status" ~ scales::col_numeric(
-        palette = c("#F4D9E6", "#C06C9C"),
-        domain = range(attrition_rate)
-      )(attrition_rate)
-    )
-  ) %>%
-  ungroup()
-
-figure1 <- ggplot(
-  fig1_data,
-  aes(
-    x = Level,
-    y = attrition_rate,
-    fill = fill_color
-  )
-) +
-  geom_col(
-    width = 0.68,
-    color = "grey35",
-    linewidth = 0.25,
-    show.legend = FALSE
-  ) +
-
-  geom_text(
-    aes(label = label),
-    vjust = -0.25,
-    size = 3.4,
-    color = "black",
-    lineheight = 0.90
-  ) +
-
-  geom_hline(
-    yintercept = overall_attrition,
-    linetype = "dashed",
-    color = "grey45",
-    linewidth = 0.55
-  ) +
-
-  facet_grid(
-    . ~ Factor,
-    scales = "free_x",
-    space = "free_x"
-  ) +
-
-  scale_y_continuous(
-    labels = scales::percent_format(accuracy = 1),
-    limits = c(0, 0.36),
-    expand = expansion(mult = c(0, 0.08))
-  ) +
-
-  scale_fill_identity() +
-
-  labs(
-    title = "Attrition Rate Across Work-Life Strain Markers",
-    subtitle = paste0(
-      "Dashed line = overall attrition rate (",
-      scales::percent(overall_attrition, accuracy = 0.1),
-      ")"
-    ),
-    x = NULL,
-    y = "Attrition Rate"
-  ) +
-
-  theme_minimal(base_size = 12) +
-  theme(
-    plot.title = element_text(
-      size = 17,
-      face = "bold",
-      color = "black",
-      hjust = 0,
-      margin = margin(b = 4)
-    ),
-
-    plot.subtitle = element_text(
-      size = 11.5,
-      color = "grey35",
-      hjust = 0,
-      margin = margin(b = 12)
-    ),
-
-    strip.background = element_rect(
-      fill = "grey88",
-      color = NA
-    ),
-
-    strip.text = element_text(
-      size = 12,
-      face = "bold",
-      color = "black",
-      margin = margin(t = 6, b = 6)
-    ),
-
-    axis.text.x = element_text(
-      size = 10.5,
-      color = "black",
-      angle = 25,
-      hjust = 1
-    ),
-
-    axis.text.y = element_text(
-      size = 10.5,
-      color = "grey25"
-    ),
-
-    axis.title.y = element_text(
-      size = 12,
-      face = "bold",
-      color = "black"
-    ),
-
-    panel.grid.major.x = element_blank(),
-    panel.grid.minor = element_blank(),
-    panel.grid.major.y = element_line(
-      color = "grey88",
-      linewidth = 0.35
-    ),
-
-    panel.spacing.x = unit(0.45, "lines"),
-
-    plot.margin = margin(10, 16, 8, 10)
-  )
-
-dir.create("output/figures", recursive = TRUE, showWarnings = FALSE)
-
-ggsave(
-  filename = "output/figures/figure1_attrition_by_key_risk_markers_faceted.png",
-  plot = figure1,
-  width = 8.2,
-  height = 4.6,
-  dpi = 350
-)
-
-figure1
-```
-
 <figure>
 <img src="README_files/figure-gfm/figure1-1.png"
 alt="Figure 1. Attrition rate for each strain factor. Dashed line = overall average attrition rate (16.1%)." />
@@ -291,6 +75,8 @@ factor. Dashed line = overall average attrition rate
 </figure>
 
 # Table 1 — Logistic regression odds ratios
+
+![](README_files/figure-gfm/table1-1.png)<!-- -->
 
 \#Attrition Rate by Number of Strain Markers
 
@@ -475,3 +261,32 @@ Income + seniority controls
 </tbody>
 
 </table>
+
+# Logistic model with the three strain markers
+
+``` r
+m_strain <- glm(Attr ~ OverTime + BusinessTravel + MaritalStatus, binomial, ibm)
+ibm$p_hat <- predict(m_strain, type = "response")
+
+# Compute AUC (no extra packages needed)
+n1 <- sum(ibm$Attr == 1); n0 <- sum(ibm$Attr == 0)
+auc <- (sum(rank(ibm$p_hat)[ibm$Attr == 1]) - n1 * (n1 + 1) / 2) / (n1 * n0)
+
+# ROC curve points across thresholds
+thr <- seq(0, 1, by = 0.005)
+roc <- data.frame(
+  fpr = sapply(thr, function(t) mean(ibm$p_hat[ibm$Attr == 0] >= t)),
+  tpr = sapply(thr, function(t) mean(ibm$p_hat[ibm$Attr == 1] >= t)))
+
+ggplot(roc, aes(fpr, tpr)) +
+  geom_abline(linetype = "dashed", colour = "grey60") +              # random-guess line (AUC = 0.5)
+  geom_line(colour = "#1F4E5F", linewidth = 1) +
+  annotate("text", x = 0.65, y = 0.15,
+           label = paste0("AUC = ", round(auc, 2))) +
+  scale_x_continuous(labels = scales::percent) +
+  scale_y_continuous(labels = scales::percent) +
+  labs(title = "ROC Curve — Three-Marker Strain Model",
+       x = "False positive rate", y = "True positive rate")
+```
+
+![](README_files/figure-gfm/unnamed-chunk-3-1.png)<!-- -->

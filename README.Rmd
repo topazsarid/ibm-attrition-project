@@ -69,7 +69,7 @@ base_rate
 
 # Figure 1 — "Attrition Rate Across Work-Life Strain Markers"
 
-```{r figure1, fig.width=6.2, fig.height=4.3, fig.cap="Figure 1. Attrition rate for each strain factor. Dashed line = overall average attrition rate (16.1%)."}
+```{r figure1,echo=FALSE, fig.width=6.2, fig.height=4.3, fig.cap="Figure 1. Attrition rate for each strain factor. Dashed line = overall average attrition rate (16.1%)."}
 overall_attrition <- mean(ibm$Attr)
 
 fig1_data <- bind_rows(
@@ -286,6 +286,174 @@ figure1
 ```
 
 # Table 1 — Logistic regression odds ratios
+```{r table1, echo=FALSE, message=FALSE, warning=FALSE, fig.width=6.6, fig.height=2.85}
+
+model_or <- glm(
+  Attr ~ OverTime + BusinessTravel + MaritalStatus,
+  family = binomial,
+  data = ibm
+)
+
+format_p <- function(p_value) {
+  ifelse(p_value < 0.001, "<0.001", sprintf("%.3f", p_value))
+}
+
+or_table <- tidy(
+  model_or,
+  exponentiate = TRUE,
+  conf.int = TRUE
+) %>%
+  filter(term != "(Intercept)") %>%
+  transmute(
+    Variable = recode(
+      term,
+      "OverTimeYes" = "Overtime: Yes",
+      "BusinessTravelTravel_Rarely" = "Travel: Rarely",
+      "BusinessTravelTravel_Frequently" = "Travel: Frequent",
+      "MaritalStatusMarried" = "Marital: Married",
+      "MaritalStatusDivorced" = "Marital: Divorced"
+    ),
+    OR = formatC(estimate, format = "f", digits = 2),
+    `95% CI` = paste0(
+      formatC(conf.low, format = "f", digits = 2),
+      "–",
+      formatC(conf.high, format = "f", digits = 2)
+    ),
+    `p-value` = format_p(p.value)
+  ) %>%
+  mutate(
+    row_y = rev(seq(1.35, 4.55, length.out = n())),
+    row_id = row_number()
+  )
+
+header_data <- tibble(
+  label = c("Variable", "OR", "95% CI", "p-value"),
+  x = c(0.06, 0.58, 0.75, 0.91),
+  hjust = c(0, 0.5, 0.5, 0.5)
+)
+
+row_background <- or_table %>%
+  mutate(
+    fill_color = if_else(row_id %% 2 == 1, "#FFFFFF", "#F6F8FA"),
+    ymin = row_y - 0.32,
+    ymax = row_y + 0.32
+  )
+
+table1_plot <- ggplot() +
+
+  # Title and reference note
+  annotate(
+    "text",
+    x = 0.5,
+    y = 6.28,
+    label = "Logistic regression odds ratios.",
+    size = 4.6,
+    fontface = "bold",
+    color = "black"
+  ) +
+  annotate(
+    "text",
+    x = 0.5,
+    y = 5.78,
+    label = "Reference groups: no overtime, non-travel, single.",
+    size = 3.55,
+    fontface = "plain",
+    color = "grey25"
+  ) +
+
+  # Header background
+  geom_rect(
+    aes(xmin = 0.02, xmax = 0.98, ymin = 5.05, ymax = 5.45),
+    fill = "#E9EEF3",
+    color = NA
+  ) +
+
+  # Alternating row backgrounds
+  geom_rect(
+    data = row_background,
+    aes(xmin = 0.02, xmax = 0.98, ymin = ymin, ymax = ymax),
+    fill = row_background$fill_color,
+    color = NA
+  ) +
+
+  # Top and bottom rules
+  geom_segment(
+    aes(x = 0.02, xend = 0.98, y = 5.48, yend = 5.48),
+    color = "grey30",
+    linewidth = 0.5
+  ) +
+  geom_segment(
+    aes(x = 0.02, xend = 0.98, y = 5.03, yend = 5.03),
+    color = "grey55",
+    linewidth = 0.35
+  ) +
+  geom_segment(
+    aes(x = 0.02, xend = 0.98, y = 1.00, yend = 1.00),
+    color = "grey30",
+    linewidth = 0.45
+  ) +
+
+  # Header text
+  geom_text(
+    data = header_data,
+    aes(x = x, y = 5.25, label = label, hjust = hjust),
+    size = 3.85,
+    fontface = "bold",
+    color = "black"
+  ) +
+
+  # Table body text
+  geom_text(
+    data = or_table,
+    aes(x = 0.06, y = row_y, label = Variable),
+    hjust = 0,
+    size = 3.75,
+    color = "black"
+  ) +
+  geom_text(
+    data = or_table,
+    aes(x = 0.58, y = row_y, label = OR),
+    hjust = 0.5,
+    size = 3.75,
+    color = "black"
+  ) +
+  geom_text(
+    data = or_table,
+    aes(x = 0.75, y = row_y, label = `95% CI`),
+    hjust = 0.5,
+    size = 3.75,
+    color = "black"
+  ) +
+  geom_text(
+    data = or_table,
+    aes(x = 0.91, y = row_y, label = `p-value`),
+    hjust = 0.5,
+    size = 3.75,
+    color = "black"
+  ) +
+
+  coord_cartesian(
+    xlim = c(0, 1),
+    ylim = c(0.75, 6.55),
+    clip = "off"
+  ) +
+  theme_void() +
+  theme(
+    plot.margin = margin(5, 5, 5, 5)
+  )
+
+dir.create("output/figures", recursive = TRUE, showWarnings = FALSE)
+
+ggsave(
+  filename = "output/figures/table1_logistic_regression_odds_ratios.png",
+  plot = table1_plot,
+  width = 6.6,
+  height = 2.85,
+  dpi = 350
+)
+
+table1_plot
+```
 
 
 #Attrition Rate by Number of Strain Markers
@@ -458,5 +626,33 @@ kable(
   table.attr = 'class="income-table"'
 )
 ```
+
+
+# Logistic model with the three strain markers
+```{r}
+m_strain <- glm(Attr ~ OverTime + BusinessTravel + MaritalStatus, binomial, ibm)
+ibm$p_hat <- predict(m_strain, type = "response")
+
+# Compute AUC (no extra packages needed)
+n1 <- sum(ibm$Attr == 1); n0 <- sum(ibm$Attr == 0)
+auc <- (sum(rank(ibm$p_hat)[ibm$Attr == 1]) - n1 * (n1 + 1) / 2) / (n1 * n0)
+
+# ROC curve points across thresholds
+thr <- seq(0, 1, by = 0.005)
+roc <- data.frame(
+  fpr = sapply(thr, function(t) mean(ibm$p_hat[ibm$Attr == 0] >= t)),
+  tpr = sapply(thr, function(t) mean(ibm$p_hat[ibm$Attr == 1] >= t)))
+
+ggplot(roc, aes(fpr, tpr)) +
+  geom_abline(linetype = "dashed", colour = "grey60") +              # random-guess line (AUC = 0.5)
+  geom_line(colour = "#1F4E5F", linewidth = 1) +
+  annotate("text", x = 0.65, y = 0.15,
+           label = paste0("AUC = ", round(auc, 2))) +
+  scale_x_continuous(labels = scales::percent) +
+  scale_y_continuous(labels = scales::percent) +
+  labs(title = "ROC Curve — Three-Marker Strain Model",
+       x = "False positive rate", y = "True positive rate")
+```
+
 
 
