@@ -626,7 +626,6 @@ cat('
   max-width: 430px;
   font-size: 11px;
   color: black;
-}
 
 .income-table th {
   color: black;

@@ -175,7 +175,6 @@ ggplot(attrition_summary, aes(x = PayGroup, y = factor(StrainLoad), fill = Attri
   max-width: 430px;
   font-size: 11px;
   color: black;
-}
 &#10;.income-table th {
   color: black;
   font-weight: bold;
@@ -342,4 +341,4 @@ ggplot(roc, aes(fpr, tpr)) +
        x = "False positive rate", y = "True positive rate")
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-3-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-4-1.png)<!-- -->
