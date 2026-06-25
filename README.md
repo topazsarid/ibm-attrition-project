@@ -62,3 +62,206 @@ base_rate
 
 # Data Analysis
 
+\#part 2 \#StrainLoad fig
+
+``` r
+library(tidyverse)
+
+strain_tab <- ibm %>% group_by(StrainLoad) %>%
+  summarise(n = n(), left = sum(Attr), rate = mean(Attr), .groups = "drop")
+
+ggplot(strain_tab, aes(factor(StrainLoad), rate)) +
+  geom_col(fill = "#A7C8D6", width = 0.45) +
+  geom_text(aes(label = paste0(scales::percent(rate, accuracy = 0.1), "\n(n=", n, ")")),
+            vjust = -0.3, size = 3, lineheight = 0.9) +
+  geom_hline(yintercept = mean(ibm$Attr), linetype = "dashed", colour = "grey60") +
+  scale_y_continuous(labels = scales::percent, limits = c(0, 0.6)) +
+  labs(x = "Number of strain markers (0-3)", y = "Attrition rate")
+```
+
+![](README_files/figure-gfm/unnamed-chunk-1-1.png)<!-- -->
+
+``` r
+m_load <- glm(Attr ~ StrainLoad, binomial, ibm)
+b  <- coef(m_load)["StrainLoad"]
+se <- summary(m_load)$coefficients["StrainLoad", "Std. Error"]
+ci <- exp(c(b - 1.96*se, b + 1.96*se))                       
+
+trend <- prop.trend.test(strain_tab$left, strain_tab$n)        
+m_sep <- glm(Attr ~ s_overtime + s_travel + s_single, binomial, ibm)
+lrt   <- anova(m_load, m_sep, test = "LRT")
+
+tibble(
+  Statistic = c("OR per additional strain marker",
+                "Cochran-Armitage trend test",
+                "LRT: separate weights vs. simple count"),
+  Result = c(sprintf("%.2f (95%% CI %.2f-%.2f), p < 0.001", exp(b), ci[1], ci[2]),
+             sprintf("chi-square = %.1f, p < 0.001", trend$statistic),
+             sprintf("p = %.2f (no improvement)", lrt$`Pr(>Chi)`[2]))
+) %>% knitr::kable()
+```
+
+| Statistic | Result |
+|:---|:---|
+| OR per additional strain marker | 3.24 (95% CI 2.62-4.01), p \< 0.001 |
+| Cochran-Armitage trend test | chi-square = 130.7, p \< 0.001 |
+| LRT: separate weights vs. simple count | p = 0.13 (no improvement) |
+
+\#part 4 \# correlation income ODS-Ratios
+
+<style>
+.income-table-title {
+  text-align: center;
+  color: black;
+  font-weight: bold;
+  font-size: 11px;
+  margin-top: 3px;
+  margin-bottom: 4px;
+}
+&#10;.income-table {
+  margin-left: auto;
+  margin-right: auto;
+  border-collapse: collapse;
+  width: 46%;
+  max-width: 430px;
+  font-size: 11px;
+  color: black;
+}
+&#10;.income-table th {
+  color: black;
+  font-weight: bold;
+  text-align: center;
+  padding: 5px 8px;
+  border-bottom: 2px solid #D9D9D9;
+  background-color: white;
+}
+&#10;.income-table td {
+  color: black;
+  text-align: center;
+  padding: 5px 8px;
+  border-bottom: 1px solid #E0E0E0;
+  background-color: white;
+}
+&#10;.income-table th:first-child,
+.income-table td:first-child {
+  text-align: left;
+  padding-left: 6px;
+}
+&#10;.income-table tr:last-child td {
+  border-bottom: none;
+}
+</style>
+
+<div class="income-table-title">
+
+Income OR after seniority controls
+
+</div>
+
+<table class="income-table">
+
+<thead>
+
+<tr>
+
+<th style="text-align:left;">
+
+Model
+</th>
+
+<th style="text-align:center;">
+
+Income OR
+</th>
+
+<th style="text-align:center;">
+
+95% CI
+</th>
+
+<th style="text-align:center;">
+
+p-value
+</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+<tr>
+
+<td style="text-align:left;">
+
+Income only
+</td>
+
+<td style="text-align:center;">
+
+0.55
+</td>
+
+<td style="text-align:center;">
+
+0.45–0.67
+</td>
+
+<td style="text-align:center;">
+
+\<0.001
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+Income + Age
+</td>
+
+<td style="text-align:center;">
+
+0.64
+</td>
+
+<td style="text-align:center;">
+
+0.52–0.80
+</td>
+
+<td style="text-align:center;">
+
+\<0.001
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+Income + seniority controls
+</td>
+
+<td style="text-align:center;">
+
+0.95
+</td>
+
+<td style="text-align:center;">
+
+0.57–1.58
+</td>
+
+<td style="text-align:center;">
+
+0.843
+</td>
+
+</tr>
+
+</tbody>
+
+</table>
