@@ -20,6 +20,8 @@ folder.
 ``` r
 library(tidyverse)
 library(broom)
+library(knitr)
+library(kableExtra)
 
 navy <- "#1F4E5F"; accent <- "#C0622E"; grayc <- "grey60"
 theme_set(theme_minimal(base_size = 11) + theme(panel.grid.minor = element_blank()))
@@ -62,44 +64,252 @@ base_rate
 
 # Data Analysis
 
-\#part 2 \#StrainLoad fig
+# Figure 1 — “Attrition Rate Across Work-Life Strain Markers”
 
 ``` r
-library(tidyverse)
+overall_attrition <- mean(ibm$Attr)
 
+fig1_data <- bind_rows(
+  ibm %>%
+    group_by(Level = OverTime) %>%
+    summarise(
+      attrition_rate = mean(Attr),
+      n = n(),
+      .groups = "drop"
+    ) %>%
+    mutate(
+      Factor = "Overtime",
+      Level = recode(
+        as.character(Level),
+        "No" = "No overtime",
+        "Yes" = "Overtime"
+      )
+    ),
+
+  ibm %>%
+    group_by(Level = BusinessTravel) %>%
+    summarise(
+      attrition_rate = mean(Attr),
+      n = n(),
+      .groups = "drop"
+    ) %>%
+    mutate(
+      Factor = "Business travel",
+      Level = recode(
+        as.character(Level),
+        "Non-Travel" = "Non-travel",
+        "Travel_Rarely" = "Travel rarely",
+        "Travel_Frequently" = "Travel frequently"
+      )
+    ),
+
+  ibm %>%
+    group_by(Level = MaritalStatus) %>%
+    summarise(
+      attrition_rate = mean(Attr),
+      n = n(),
+      .groups = "drop"
+    ) %>%
+    mutate(
+      Factor = "Marital status",
+      Level = as.character(Level)
+    )
+) %>%
+  mutate(
+    Factor = factor(
+      Factor,
+      levels = c("Overtime", "Business travel", "Marital status")
+    ),
+    Level = factor(
+      Level,
+      levels = c(
+        "No overtime", "Overtime",
+        "Non-travel", "Travel rarely", "Travel frequently",
+        "Divorced", "Married", "Single"
+      )
+    ),
+    label = paste0(
+      scales::percent(attrition_rate, accuracy = 0.1),
+      "\n",
+      "n=", n
+    )
+  ) %>%
+  group_by(Factor) %>%
+  mutate(
+    fill_color = case_when(
+      Factor == "Overtime" ~ scales::col_numeric(
+        palette = c("#D7EAF7", "#2A6F97"),
+        domain = range(attrition_rate)
+      )(attrition_rate),
+
+      Factor == "Business travel" ~ scales::col_numeric(
+        palette = c("#E4D9F2", "#7B5EA7"),
+        domain = range(attrition_rate)
+      )(attrition_rate),
+
+      Factor == "Marital status" ~ scales::col_numeric(
+        palette = c("#F4D9E6", "#C06C9C"),
+        domain = range(attrition_rate)
+      )(attrition_rate)
+    )
+  ) %>%
+  ungroup()
+
+figure1 <- ggplot(
+  fig1_data,
+  aes(
+    x = Level,
+    y = attrition_rate,
+    fill = fill_color
+  )
+) +
+  geom_col(
+    width = 0.68,
+    color = "grey35",
+    linewidth = 0.25,
+    show.legend = FALSE
+  ) +
+
+  geom_text(
+    aes(label = label),
+    vjust = -0.25,
+    size = 3.4,
+    color = "black",
+    lineheight = 0.90
+  ) +
+
+  geom_hline(
+    yintercept = overall_attrition,
+    linetype = "dashed",
+    color = "grey45",
+    linewidth = 0.55
+  ) +
+
+  facet_grid(
+    . ~ Factor,
+    scales = "free_x",
+    space = "free_x"
+  ) +
+
+  scale_y_continuous(
+    labels = scales::percent_format(accuracy = 1),
+    limits = c(0, 0.36),
+    expand = expansion(mult = c(0, 0.08))
+  ) +
+
+  scale_fill_identity() +
+
+  labs(
+    title = "Attrition Rate Across Work-Life Strain Markers",
+    subtitle = paste0(
+      "Dashed line = overall attrition rate (",
+      scales::percent(overall_attrition, accuracy = 0.1),
+      ")"
+    ),
+    x = NULL,
+    y = "Attrition Rate"
+  ) +
+
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_text(
+      size = 17,
+      face = "bold",
+      color = "black",
+      hjust = 0,
+      margin = margin(b = 4)
+    ),
+
+    plot.subtitle = element_text(
+      size = 11.5,
+      color = "grey35",
+      hjust = 0,
+      margin = margin(b = 12)
+    ),
+
+    strip.background = element_rect(
+      fill = "grey88",
+      color = NA
+    ),
+
+    strip.text = element_text(
+      size = 12,
+      face = "bold",
+      color = "black",
+      margin = margin(t = 6, b = 6)
+    ),
+
+    axis.text.x = element_text(
+      size = 10.5,
+      color = "black",
+      angle = 25,
+      hjust = 1
+    ),
+
+    axis.text.y = element_text(
+      size = 10.5,
+      color = "grey25"
+    ),
+
+    axis.title.y = element_text(
+      size = 12,
+      face = "bold",
+      color = "black"
+    ),
+
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.grid.major.y = element_line(
+      color = "grey88",
+      linewidth = 0.35
+    ),
+
+    panel.spacing.x = unit(0.45, "lines"),
+
+    plot.margin = margin(10, 16, 8, 10)
+  )
+
+dir.create("output/figures", recursive = TRUE, showWarnings = FALSE)
+
+ggsave(
+  filename = "output/figures/figure1_attrition_by_key_risk_markers_faceted.png",
+  plot = figure1,
+  width = 8.2,
+  height = 4.6,
+  dpi = 350
+)
+
+figure1
+```
+
+<figure>
+<img src="README_files/figure-gfm/figure1-1.png"
+alt="Figure 1. Attrition rate for each strain factor. Dashed line = overall average attrition rate (16.1%)." />
+<figcaption aria-hidden="true">Figure 1. Attrition rate for each strain
+factor. Dashed line = overall average attrition rate
+(16.1%).</figcaption>
+</figure>
+
+# Table 1 — Logistic regression odds ratios
+
+\#Attrition Rate by Number of Strain Markers
+
+``` r
 strain_tab <- ibm %>% group_by(StrainLoad) %>%
   summarise(n = n(), left = sum(Attr), rate = mean(Attr), .groups = "drop")
 
-ggplot(strain_tab, aes(factor(StrainLoad), rate)) +
-  geom_col(fill = "#A7C8D6", width = 0.45) +
+ggplot(strain_tab, aes(factor(StrainLoad), rate)) + 
+  geom_col(fill = "#7FB3C4", width = 0.45) +
   geom_text(aes(label = paste0(scales::percent(rate, accuracy = 0.1), "\n(n=", n, ")")),
             vjust = -0.3, size = 3, lineheight = 0.9) +
   geom_hline(yintercept = mean(ibm$Attr), linetype = "dashed", colour = "grey60") +
   scale_y_continuous(labels = scales::percent, limits = c(0, 0.6)) +
-  labs(x = "Number of strain markers (0-3)", y = "Attrition rate")
+  labs(x = "Number of strain markers (0-3)", y = "Attrition rate", title = "Attrition Rate by Number of Strain Markers")
 ```
 
 ![](README_files/figure-gfm/unnamed-chunk-1-1.png)<!-- -->
 
-``` r
-m_load <- glm(Attr ~ StrainLoad, binomial, ibm)
-b  <- coef(m_load)["StrainLoad"]
-se <- summary(m_load)$coefficients["StrainLoad", "Std. Error"]
-ci <- exp(c(b - 1.96*se, b + 1.96*se))                       
-
-trend <- prop.trend.test(strain_tab$left, strain_tab$n)        
-m_sep <- glm(Attr ~ s_overtime + s_travel + s_single, binomial, ibm)
-lrt   <- anova(m_load, m_sep, test = "LRT")
-
-tibble(
-  Statistic = c("OR per additional strain marker",
-                "Cochran-Armitage trend test",
-                "LRT: separate weights vs. simple count"),
-  Result = c(sprintf("%.2f (95%% CI %.2f-%.2f), p < 0.001", exp(b), ci[1], ci[2]),
-             sprintf("chi-square = %.1f, p < 0.001", trend$statistic),
-             sprintf("p = %.2f (no improvement)", lrt$`Pr(>Chi)`[2]))
-) %>% knitr::kable()
-```
+# 
 
 | Statistic | Result |
 |:---|:---|
