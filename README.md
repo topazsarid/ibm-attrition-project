@@ -295,6 +295,7 @@ factor. Dashed line = overall average attrition rate
 \#Attrition Rate by Number of Strain Markers
 
 ``` r
+library(scales)
 strain_tab <- ibm %>% group_by(StrainLoad) %>%
   summarise(n = n(), left = sum(Attr), rate = mean(Attr), .groups = "drop")
 
@@ -316,6 +317,58 @@ ggplot(strain_tab, aes(factor(StrainLoad), rate)) +
 | OR per additional strain marker | 3.24 (95% CI 2.62-4.01), p \< 0.001 |
 | Cochran-Armitage trend test | chi-square = 130.7, p \< 0.001 |
 | LRT: separate weights vs. simple count | p = 0.13 (no improvement) |
+
+\#part 3
+
+``` r
+attrition_summary <- ibm %>%
+  mutate(
+    Attr_Num = ifelse(Attrition == "Yes", 1, 0),
+    s_overtime = ifelse(OverTime == "Yes", 1, 0),
+    s_travel = ifelse(BusinessTravel != "Non-Travel", 1, 0),
+    s_single = ifelse(MaritalStatus == "Single", 1, 0),
+    StrainLoad = s_overtime + s_travel + s_single,
+    
+    IncomeBand = ntile(MonthlyIncome, 3),
+    PayGroup = case_when(
+      IncomeBand == 1 ~ "Low Pay",
+      IncomeBand == 2 ~ "Medium Pay",
+      IncomeBand == 3 ~ "High Pay"
+    )
+  ) %>%
+  mutate(PayGroup = factor(PayGroup, levels = c("Low Pay", "Medium Pay", "High Pay"))) %>%
+  group_by(StrainLoad, PayGroup) %>%
+  summarise(
+    AttritionRate = mean(Attr_Num),
+    n = n(), 
+    .groups = "drop"
+  ) %>%
+  mutate(text_color = ifelse(AttritionRate > 0.30, "white", "black"))
+
+ggplot(attrition_summary, aes(x = PayGroup, y = factor(StrainLoad), fill = AttritionRate)) +
+  geom_tile(color = "white", size = 1) +
+    geom_text(aes(label = paste0(label_percent(accuracy = 1)(AttritionRate), "\n(n=", n, ")"),
+                color = text_color), 
+            size = 4, lineheight = 0.9) +
+  scale_color_identity() +
+  scale_fill_gradient(low = "#F2F0F7", high = "#4A1486", labels = label_percent(accuracy = 1)) +
+  labs(
+    title = "Attrition Rate by Strain Load and Pay Group",
+    subtitle = "Increased compensation cannot fully offset the impact of systemic burnout.",
+    x = "Pay Group",
+    y = "Strain Load (Number of Factors)",
+    fill = "Leaving Rate"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    panel.grid = element_blank(), 
+    plot.title = element_text(face = "bold", size = 16),
+    plot.subtitle = element_text(color = "grey40", size = 12, margin = margin(b = 15)),
+    axis.text = element_text(size = 12)
+  )
+```
+
+![](README_files/figure-gfm/unnamed-chunk-3-1.png)<!-- -->
 
 \#part 4 \# correlation income ODS-Ratios
 

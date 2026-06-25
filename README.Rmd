@@ -290,6 +290,7 @@ figure1
 
 #Attrition Rate by Number of Strain Markers
 ```{r}
+library(scales)
 strain_tab <- ibm %>% group_by(StrainLoad) %>%
   summarise(n = n(), left = sum(Attr), rate = mean(Attr), .groups = "drop")
 
@@ -353,7 +354,7 @@ attrition_summary <- ibm %>%
 
 ggplot(attrition_summary, aes(x = PayGroup, y = factor(StrainLoad), fill = AttritionRate)) +
   geom_tile(color = "white", size = 1) +
-  geom_text(aes(label = paste0(label_percent(accuracy = 1)(AttritionRate), "\n(n=", n, ")"),
+    geom_text(aes(label = paste0(label_percent(accuracy = 1)(AttritionRate), "\n(n=", n, ")"),
                 color = text_color), 
             size = 4, lineheight = 0.9) +
   scale_color_identity() +
