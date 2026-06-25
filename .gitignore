@@ -1,0 +1,26 @@
+# RStudio / R session files
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# LaTeX / render intermediates
+*.log
+*.aux
+*.out
+*.tex
+*.synctex.gz
+
+# github_document HTML preview (not needed)
+README.html
+
+# Keep the repository to the code notebook only (like the reference repo)
+data/
+docs/
+proposal/
+report/
+exploration/
